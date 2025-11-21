@@ -1,0 +1,40 @@
+# プロジェクト名
+variable "name_project" {
+  description = "プロジェクト名"
+  type        = string
+  default     = "aws-study"
+}
+
+# EC2のインスタンスタイプ
+variable "ec2_type" {
+  type    = string
+  default = "t3.micro"
+}
+
+# EC2のキーペア名
+variable "key_name" {
+  description = "EC2が使用する作成済みSSHキーペア名"
+  type        = string
+  default     = "aws-study_20251010"
+}
+
+# 管理者SSHアクセス用固定IPアドレス
+variable "ssh_fixed_ip" {
+  description = "管理者SSHアクセス用固定IPアドレス"
+  type        = string
+  default     = "128.169.2.50/32"
+}
+
+# RDS管理者ログイン名
+variable "db_username" {
+  description = "RDS master username"
+  type        = string
+  default     = "root"
+}
+
+# RDS管理者ログインパスワード
+variable "db_password" {
+  description = "RDS master password"
+  type        = string
+  sensitive   = true
+}
