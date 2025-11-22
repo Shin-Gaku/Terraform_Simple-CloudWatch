@@ -38,3 +38,10 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+# アラームの通知先メールアドレス
+variable "notification_email" {
+  description = "アラートの通知先メールアドレス"
+  type        = string
+  sensitive   = true
+}

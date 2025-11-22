@@ -44,3 +44,10 @@ variable "limit_to_alarm" {
   type        = number
   default     = 1 #1データポイントが閾値を超えたらアラーム
 }
+
+# アラームの通知先メールアドレス
+variable "notification_email" {
+  description = "アラートの通知先メールアドレス"
+  type        = string
+  sensitive   = true
+}

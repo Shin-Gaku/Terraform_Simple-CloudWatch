@@ -81,9 +81,10 @@ module "rds" {
 #  CloudWatch Alarm (モジュールから呼び出す)
 # ---------------------------------------------
 module "cloudwatchAlarm" {
-  source       = "./modules/cloudwatch"
-  ec2_id       = module.ec2Instance.instance_id
-  modules_name = "aws-study"
+  source             = "./modules/cloudwatch"
+  ec2_id             = module.ec2Instance.instance_id
+  notification_email = var.notification_email
+  modules_name       = "aws-study"
 }
 
 # ---------------------------------------------
