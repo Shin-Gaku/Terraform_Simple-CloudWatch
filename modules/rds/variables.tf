@@ -98,7 +98,7 @@ variable "auto_minor_version_upgrade" {
 variable "deletion_protection" {
   description = "削除保護を有効にするかどうか"
   type        = bool
-  default     = true
+  default     = false
 }
 
 # 削除時にスナップショットをスキップするかどうか

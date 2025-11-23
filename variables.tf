@@ -5,6 +5,13 @@ variable "name_project" {
   default     = "aws-study"
 }
 
+# プロジェクト名
+variable "name_environment" {
+  description = "独自の環境名"
+  type        = string
+  default     = "gakushindev"
+}
+
 # EC2のインスタンスタイプ
 variable "ec2_type" {
   type    = string
@@ -22,7 +29,8 @@ variable "key_name" {
 variable "ssh_fixed_ip" {
   description = "管理者SSHアクセス用固定IPアドレス"
   type        = string
-  default     = "128.169.2.50/32"
+  #default     = "128.169.2.50/32"
+  default = "0.0.0.0/0"
 }
 
 # RDS管理者ログイン名
@@ -36,6 +44,7 @@ variable "db_username" {
 variable "db_password" {
   description = "RDS master password"
   type        = string
+  default     = "rootroot"
   sensitive   = true
 }
 
@@ -43,5 +52,6 @@ variable "db_password" {
 variable "notification_email" {
   description = "アラートの通知先メールアドレス"
   type        = string
+  default     = "yakushin-co.ltd@gol.com"
   sensitive   = true
 }

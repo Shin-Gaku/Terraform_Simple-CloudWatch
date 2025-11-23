@@ -20,6 +20,7 @@ resource "aws_instance" "ec2" {
   key_name               = var.key_name
   subnet_id              = var.subnet_id
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  iam_instance_profile = var.iam_instance_profile
   tags = {
     Name = "${var.modules_name}-ec2"
   }

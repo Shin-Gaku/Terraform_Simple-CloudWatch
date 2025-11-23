@@ -39,3 +39,9 @@ variable "alb_sg_id" {
   description = "Security Group ID of the ALB which can access to EC2"
   type        = string
 }
+
+# EC iam_instance_profile
+variable "iam_instance_profile" {
+  description = "iam_instance_profile"
+  type        = string
+}
