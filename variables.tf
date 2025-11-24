@@ -29,8 +29,7 @@ variable "key_name" {
 variable "ssh_fixed_ip" {
   description = "管理者SSHアクセス用固定IPアドレス"
   type        = string
-  #default     = "128.169.2.50/32"
-  default = "0.0.0.0/0"
+  default     = "134.180.136.121/32"
 }
 
 # RDS管理者ログイン名
@@ -38,14 +37,6 @@ variable "db_username" {
   description = "RDS master username"
   type        = string
   default     = "root"
-}
-
-# RDS管理者ログインパスワード
-variable "db_password" {
-  description = "RDS master password"
-  type        = string
-  default     = "rootroot"
-  sensitive   = true
 }
 
 # アラームの通知先メールアドレス

@@ -16,6 +16,8 @@ terraform {
     key     = "awsstudy-shingaku.tfstate"
     region  = "ap-northeast-1"
     profile = "terraform"
+    #dynamodb_table = "terraform-lock"
+    encrypt = true
   }
 }
 
@@ -33,89 +35,25 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
 }
 
-# ---------------------------------------------
-# RDSマスターパスワード（ランダム） 
-# ---------------------------------------------
-resource "random_string" "db_password" {
-  length  = 16
-  special = false
-}
-
-# ---------------------------------------------------------------------
-# IAM Policy Document (tfstate)
-# ---------------------------------------------------------------------
-data "aws_iam_policy_document" "policydoc_tfstate" {
-  statement {
-    effect    = "Allow"
-    actions   = ["s3:PutObject"]
-    resources = ["arn:aws:s3:::awsstudy-tfstate-bucket-shingaku/*"]
-
-    principals {
-      type        = "AWS"
-      identifiers = ["${local.account_id}"]
-    }
-  }
-}
-
 # ---------------------------------------------------------------------
 # IAM Policy (tfstate)
 # ---------------------------------------------------------------------
 resource "aws_s3_bucket_policy" "policy_tfstate" {
   bucket = "awsstudy-tfstate-bucket-shingaku"
-  policy = data.aws_iam_policy_document.policydoc_tfstate.json
-}
-
-# ---------------------------------------------------------------------
-# IAM Policy Document (ec2 assume role)
-# ---------------------------------------------------------------------
-data "aws_iam_policy_document" "ec2_assume_role" {
-  statement {
-    actions = ["sts:AssumeRole"]
-
-    principals {
-      type        = "Service"
-      identifiers = ["ec2.amazonaws.com"]
-    }
-  }
-}
-
-# ---------------------------------------------------------------------
-# IAM Role
-# ---------------------------------------------------------------------
-resource "aws_iam_role" "app_iam_role" {
-  name               = "${var.name_project}-${var.name_environment}-app-iam-role"
-  assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
-}
-
-# ---------------------------------------------
-# インスタンスプロファイルを定義
-# ---------------------------------------------
-resource "aws_iam_instance_profile" "app_ec2_profile" {
-  name = aws_iam_role.app_iam_role.name
-  role = aws_iam_role.app_iam_role.name
-}
-
-# ---------------------------------------------------------------------
-# IAM Role Policy Attachment
-# ---------------------------------------------------------------------
-resource "aws_iam_role_policy_attachment" "app_iam_role_ec2_readonly" {
-  role       = aws_iam_role.app_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
-}
-
-resource "aws_iam_role_policy_attachment" "app_iam_role_ssm_managed" {
-  role       = aws_iam_role.app_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-resource "aws_iam_role_policy_attachment" "app_iam_role_ssm_readonly" {
-  role       = aws_iam_role.app_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
-}
-
-resource "aws_iam_role_policy_attachment" "app_iam_role_s3_readonly" {
-  role       = aws_iam_role.app_iam_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Sid" : "S3StorageTFStatePolicy",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : "arn:aws:iam::${local.account_id}:user/terraform"
+        },
+        "Action" : "s3:*",
+        "Resource" : "arn:aws:s3:::awsstudy-tfstate-bucket-shingaku/*"
+      }
+    ]
+  })
 }
 
 # ---------------------------------------------
@@ -132,15 +70,14 @@ module "aws-study-vpc" {
 # EC2インスタンス (モジュールから呼び出す)
 # ---------------------------------------------
 module "ec2Instance" {
-  source               = "./modules/ec2"
-  instance_type        = var.ec2_type
-  key_name             = var.key_name
-  ssh_fixed_ip         = var.ssh_fixed_ip
-  subnet_id            = module.aws-study-vpc.public_subnet_ids[0]
-  vpc_id               = module.aws-study-vpc.vpc_id
-  alb_sg_id            = module.alb.alb_sg_id
-  iam_instance_profile = aws_iam_instance_profile.app_ec2_profile.name
-  modules_name         = "aws-study"
+  source        = "./modules/ec2"
+  instance_type = var.ec2_type
+  key_name      = var.key_name
+  ssh_fixed_ip  = var.ssh_fixed_ip
+  subnet_id     = module.aws-study-vpc.public_subnet_ids[0]
+  vpc_id        = module.aws-study-vpc.vpc_id
+  alb_sg_id     = module.alb.alb_sg_id
+  modules_name  = "aws-study"
 }
 
 # ---------------------------------------------
@@ -154,13 +91,19 @@ module "alb" {
   modules_name = "aws-study"
 }
 
-# ---------------------------------------------
-# SSM Parameter Store
-# ---------------------------------------------
-resource "aws_ssm_parameter" "password" {
-  name  = "/${var.name_project}/${var.name_environment}/databases/rds/mysql/masterpwd"
-  type  = "SecureString"
-  value = random_string.db_password.result
+# ------------------------------------------------------
+# Secrets Managerからdb_password取得
+# ------------------------------------------------------
+data "aws_secretsmanager_secret" "rds_password" {
+  name = "${var.name_environment}/rds/mysql/password"
+}
+
+data "aws_secretsmanager_secret_version" "rds_secret_version" {
+  secret_id = data.aws_secretsmanager_secret.rds_password.id
+}
+
+locals {
+  credentials = jsondecode(data.aws_secretsmanager_secret_version.rds_secret_version.secret_string)
 }
 
 # ---------------------------------------------
@@ -172,7 +115,7 @@ module "rds" {
   private_subnet_ids = module.aws-study-vpc.private_subnet_ids
   ec2_sg_id          = module.ec2Instance.ec2_sg_id
   rds_username       = var.db_username
-  rds_password       = random_string.db_password.result
+  rds_password       = local.credentials["password"]
   AZs                = ["ap-northeast-1a", "ap-northeast-1c"]
   modules_name       = "aws-study"
 }

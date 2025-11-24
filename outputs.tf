@@ -39,15 +39,3 @@ output "wafwebacl_id" {
   description = "WAF WebACLのID"
   value       = module.waf.wafwebacl_id
 }
-
-# テスト用にlocal.account_idの出力
-output "TEST_wafwebacl_id" {
-  description = "local account_id"
-  value       = local.account_id
-}
-
-# テスト用にdb_passwordの出力
-output "TEST_db_password" {
-  description = " RDSマスターパスワード（ランダム）"
-  value       = random_string.db_password.result
-}
